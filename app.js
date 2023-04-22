@@ -2,19 +2,22 @@ const http = require("http");
 const url = require("url");
 const { parse } = require("querystring");
 const express = require("express");
+const fs = require("fs");
+
+const app = express();
 
 const host = "127.0.0.1";
 const port = 3000;
-const users = [
-  { userId: 1, id: 1, name: "Margo" },
-  { userId: 1, id: 2, name: "Margosha" },
+
+let comments = [
+  { id: 1, author: "John", text: "Nice post!" },
+  { id: 2, author: "Jane", text: "Thanks for sharing." }
 ];
 const us = { user_agent: 0 };
 
 var server = http.createServer(function (request, response) {
   console.log("URL: " + request.url);
   if (request.method == "GET") {
-    //let urlReques = url.parse(request.url, true);
     if (request.url === "/") {
       response.end("Hello word");
     } else if (request.url == "/stats") {
@@ -26,14 +29,30 @@ var server = http.createServer(function (request, response) {
       <tr><td>${request.headers["user-agent"]}</td><td>${us.user_agent}</td></tr>
       </table>`);
     }
-  } else if (request.method == "POST") {
+    
+  } else {
     if (request.url == "/comments") {
-      response.statusCode = 200;
-      response.setHeader("Content-Type", "application/json");
-      response.end(JSON.stringify(users));
+
+  let data = [];
+
+  request.on('data', chunk => {
+    data.push(chunk);
+  });
+
+  request.on('end', () => {
+    data = Buffer.concat(data).toString();
+    const newComment = JSON.parse(data);
+
+    newComment.id = comments.length + 1;
+    comments.push(newComment);
+
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify(comments));
+  });
     }
   }
 });
+
 
 server.listen(port, host);
 console.log(`Сервер начал прослушивание запросов по адресу ${host}:${port}`);
